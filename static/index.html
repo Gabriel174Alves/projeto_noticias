@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IA News Monitor | Gabriel Alves</title>
+    <style>
+        :root { --primary: #2563eb; --bg: #f8fafc; --text: #1e293b; --pos: #22c55e; --neg: #ef4444; --neu: #64748b; }
+        body { font-family: 'Inter', sans-serif; background-color: var(--bg); color: var(--text); margin: 0; display: flex; flex-direction: column; align-items: center; }
+        .header { text-align: center; padding: 2rem; background: white; width: 100%; box-shadow: 0 1px 3px rgba(0,0,0,0.1); margin-bottom: 2rem; }
+        .container { width: 90%; max-width: 800px; }
+        .search-box { display: flex; gap: 10px; margin-bottom: 1rem; }
+        input { flex: 1; padding: 12px; border: 1px solid #cbd5e1; border-radius: 8px; }
+        button { padding: 12px 20px; background: var(--primary); color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; }
+        .filter-bar { display: flex; justify-content: center; gap: 10px; margin-bottom: 20px; }
+        .filter-btn { padding: 6px 15px; font-size: 0.8rem; background: #e2e8f0; color: var(--text); }
+        .card { background: white; padding: 1.5rem; margin-bottom: 1rem; border-radius: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); border-left: 6px solid #ddd; }
+        .POSITIVO { border-left-color: var(--pos); } .NEGATIVO { border-left-color: var(--neg); } .NEUTRO { border-left-color: var(--neu); }
+        .badge { padding: 4px 10px; border-radius: 20px; font-size: 0.7rem; font-weight: bold; text-transform: uppercase; }
+        .sent-POSITIVO { background: #dcfce7; color: #166534; } .sent-NEGATIVO { background: #fee2e2; color: #991b1b; }
+        a { color: var(--primary); text-decoration: none; font-size: 0.9rem; }
+        #status { text-align: center; margin-bottom: 1rem; font-style: italic; color: var(--neu); }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🔍 Monitor de Sentimentos IA</h1>
+        <p>Análise de impacto em tempo real</p>
+    </div>
+
+    <div class="container">
+        <div class="search-box">
+            <input type="text" id="temaInput" placeholder="Digite um tema (Ex: Nvidia, Lula, Bitcoin)...">
+            <button onclick="buscarNoticias()">Analisar</button>
+        </div>
+
+        <div class="filter-bar">
+            <button class="filter-btn" onclick="filtrar('TODAS')">Todas</button>
+            <button class="filter-btn" style="color: #166534" onclick="filtrar('POSITIVO')">Positivas</button>
+            <button class="filter-btn" style="color: #991b1b" onclick="filtrar('NEGATIVO')">Negativas</button>
+        </div>
+
+        <div id="status"></div>
+        <div id="lista-noticias"></div>
+    </div>
+
+    <script>
+        let noticiasCache = [];
+
+        async function buscarNoticias() {
+            const tema = document.getElementById('temaInput').value;
+            const container = document.getElementById('lista-noticias');
+            const status = document.getElementById('status');
+            if (!tema) return alert("Digite um tema!");
+
+            container.innerHTML = "";
+            status.innerHTML = `🤖 Analisando impacto de "${tema}"...`;
+
+            try {
+                const res = await fetch(`/api/noticias/${tema}`);
+                noticiasCache = await res.json();
+                renderizar(noticiasCache);
+                status.innerHTML = `✅ Top 3 notícias encontradas:`;
+            } catch (err) {
+                status.innerHTML = "❌ Erro ao conectar ao servidor.";
+            }
+        }
+
+        function renderizar(lista) {
+            const container = document.getElementById('lista-noticias');
+            container.innerHTML = lista.length ? "" : "<p style='text-align:center'>Nenhuma notícia encontrada com este filtro.</p>";
+            lista.forEach(n => {
+                const card = document.createElement('div');
+                card.className = `card ${n.sentimento}`;
+                card.innerHTML = `
+                    <div style="margin-bottom: 8px;">
+                        <span class="badge sent-${n.sentimento}">${n.sentimento}</span>
+                        <span style="font-size: 0.7rem; color: #64748b; margin-left: 10px;">Prioridade: ${n.relevancia}/10</span>
+                    </div>
+                    <h3 style="margin: 0 0 10px 0; font-size: 1.1rem;">${n.titulo}</h3>
+                    <a href="${n.url}" target="_blank">Ler reportagem completa →</a>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        function filtrar(tipo) {
+            if (tipo === 'TODAS') renderizar(noticiasCache);
+            else renderizar(noticiasCache.filter(n => n.sentimento === tipo));
+        }
+    </script>
+</body>
+</html>
